@@ -1,0 +1,12 @@
+{
+  "category": "General",
+  "description": "Discover arbitrary subtitle names in movie directories and nested folders; link safely next to videos.",
+  "guid": "746a7eb3-42b6-46b1-98cb-14f02d5ac22b",
+  "name": "AutoSubs",
+  "overview": "Automatic local subtitle discovery for Jellyfin movie libraries.",
+  "owner": "Local",
+  "status": "Active",
+  "targetAbi": "12.2.0.0",
+  "timestamp": "2026-11-18T22:00:00.0000000Z",
+  "version": "0.1.0.0"
+}

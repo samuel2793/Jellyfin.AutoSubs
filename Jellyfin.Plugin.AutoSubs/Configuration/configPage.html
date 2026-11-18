@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"/><title>AutoSubs</title></head>
+<body>
+  <div id="autoSubsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+    <div data-role="content">
+      <div class="content-primary">
+        <h2>AutoSubs</h2>
+        <p>Find subtitles with arbitrary names in movie folders and subfolders. Create relative symlinks next to the video, without moving originals. Movies with multiple video files in the same folder are skipped.</p>
+        <form id="autoSubsConfigForm">
+          <div class="inputContainer">
+            <label class="inputLabel" for="autoSubsEnabled">Enabled</label>
+            <input id="autoSubsEnabled" type="checkbox" is="emby-checkbox" class="emby-checkbox"/>
+          </div>
+          <div class="inputContainer">
+            <label class="inputLabel" for="autoSubsDryRun">Dry run (log only; create no links)</label>
+            <input id="autoSubsDryRun" type="checkbox" is="emby-checkbox" class="emby-checkbox"/>
+          </div>
+          <div class="inputContainer">
+            <label class="inputLabel" for="autoSubsMaxDepth">Maximum directory depth</label>
+            <input id="autoSubsMaxDepth" type="number" min="1" max="30" is="emby-input" class="emby-input" />
+          </div>
+          <button is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Save</span></button>
+        </form>
+      </div>
+    </div>
+    <script type="text/javascript">
+      (function () {
+        var page = document.querySelector('#autoSubsConfigPage');
+        var pluginId = '746a7eb3-42b6-46b1-98cb-14f02d5ac22b';
+        page.addEventListener('pageshow', function () {
+          Dashboard.showLoadingMsg();
+          ApiClient.getPluginConfiguration(pluginId).then(function (c) {
+            page.querySelector('#autoSubsEnabled').checked = c.Enabled;
+            page.querySelector('#autoSubsDryRun').checked = c.DryRun;
+            page.querySelector('#autoSubsMaxDepth').value = c.MaxDepth;
+            Dashboard.hideLoadingMsg();
+          }).catch(function () { Dashboard.hideLoadingMsg(); });
+        });
+        page.querySelector('#autoSubsConfigForm').addEventListener('submit', function (e) {
+          e.preventDefault();
+          Dashboard.showLoadingMsg();
+          ApiClient.getPluginConfiguration(pluginId).then(function (c) {
+            c.Enabled = page.querySelector('#autoSubsEnabled').checked;
+            c.DryRun = page.querySelector('#autoSubsDryRun').checked;
+            c.MaxDepth = Math.max(1, Math.min(30, Number(page.querySelector('#autoSubsMaxDepth').value) || 12));
+            return ApiClient.updatePluginConfiguration(pluginId, c);
+          }).then(function () { Dashboard.processPluginConfigurationUpdateResult(); })
+            .catch(function (e) { Dashboard.hideLoadingMsg(); console.error('AutoSubs save error:', e); });
+          return false;
+        });
+      })();
+    </script>
+  </div>
+</body>
+</html>

@@ -9,45 +9,75 @@
         <p>Find subtitles with arbitrary names in movie folders and subfolders. Create relative symlinks next to the video, without moving originals. Movies with multiple video files in the same folder are skipped.</p>
         <form id="autoSubsConfigForm">
           <div class="inputContainer">
-            <label class="inputLabel" for="autoSubsEnabled">Enabled</label>
-            <input id="autoSubsEnabled" type="checkbox" is="emby-checkbox" class="emby-checkbox"/>
+            <label for="autoSubsEnabled" style="display:flex;align-items:center;gap:0.65rem;cursor:pointer;">
+              <input id="autoSubsEnabled" type="checkbox" style="appearance:auto;width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:#00a4dc;"/>
+              <span>Enabled</span>
+            </label>
           </div>
           <div class="inputContainer">
-            <label class="inputLabel" for="autoSubsDryRun">Dry run (log only; create no links)</label>
-            <input id="autoSubsDryRun" type="checkbox" is="emby-checkbox" class="emby-checkbox"/>
+            <label for="autoSubsDryRun" style="display:flex;align-items:center;gap:0.65rem;cursor:pointer;">
+              <input id="autoSubsDryRun" type="checkbox" style="appearance:auto;width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:#00a4dc;"/>
+              <span>Dry run (log only; create no links)</span>
+            </label>
           </div>
           <div class="inputContainer">
             <label class="inputLabel" for="autoSubsMaxDepth">Maximum directory depth</label>
-            <input id="autoSubsMaxDepth" type="number" min="1" max="30" is="emby-input" class="emby-input" />
+            <input id="autoSubsMaxDepth" type="number" min="1" max="30" class="emby-input"/>
           </div>
-          <button is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Save</span></button>
+          <button id="autoSubsSave" type="submit" class="raised button-submit block emby-button"><span>Save</span></button>
+          <p id="autoSubsStatus" role="status" aria-live="polite"></p>
         </form>
       </div>
     </div>
     <script type="text/javascript">
       (function () {
+        'use strict';
         var page = document.querySelector('#autoSubsConfigPage');
+        if (!page) return;
+
         var pluginId = '746a7eb3-42b6-46b1-98cb-14f02d5ac22b';
-        page.addEventListener('pageshow', function () {
-          Dashboard.showLoadingMsg();
-          ApiClient.getPluginConfiguration(pluginId).then(function (c) {
-            page.querySelector('#autoSubsEnabled').checked = c.Enabled;
-            page.querySelector('#autoSubsDryRun').checked = c.DryRun;
-            page.querySelector('#autoSubsMaxDepth').value = c.MaxDepth;
-            Dashboard.hideLoadingMsg();
-          }).catch(function () { Dashboard.hideLoadingMsg(); });
-        });
-        page.querySelector('#autoSubsConfigForm').addEventListener('submit', function (e) {
-          e.preventDefault();
-          Dashboard.showLoadingMsg();
-          ApiClient.getPluginConfiguration(pluginId).then(function (c) {
-            c.Enabled = page.querySelector('#autoSubsEnabled').checked;
-            c.DryRun = page.querySelector('#autoSubsDryRun').checked;
-            c.MaxDepth = Math.max(1, Math.min(30, Number(page.querySelector('#autoSubsMaxDepth').value) || 12));
-            return ApiClient.updatePluginConfiguration(pluginId, c);
-          }).then(function () { Dashboard.processPluginConfigurationUpdateResult(); })
-            .catch(function (e) { Dashboard.hideLoadingMsg(); console.error('AutoSubs save error:', e); });
-          return false;
+        var enabled = page.querySelector('#autoSubsEnabled');
+        var dryRun = page.querySelector('#autoSubsDryRun');
+        var depth = page.querySelector('#autoSubsMaxDepth');
+        var save = page.querySelector('#autoSubsSave');
+        var status = page.querySelector('#autoSubsStatus');
+
+        function setStatus(message, error) {
+          status.textContent = message;
+          status.style.color = error ? '#e88' : 'inherit';
+        }
+
+        async function loadSettings() {
+          try {
+            var config = await ApiClient.getPluginConfiguration(pluginId);
+            enabled.checked = Boolean(config.Enabled);
+            dryRun.checked = Boolean(config.DryRun);
+            depth.value = config.MaxDepth == null ? 12 : config.MaxDepth;
+            setStatus('', false);
+          } catch (error) {
+            console.error('AutoSubs configuration load failed:', error);
+            setStatus('Could not load AutoSubs settings. See browser console.', true);
+          }
+        }
+
+        page.addEventListener('pageshow', loadSettings);
+        page.querySelector('#autoSubsConfigForm').addEventListener('submit', async function (event) {
+          event.preventDefault();
+          save.disabled = true;
+          setStatus('Saving...', false);
+          try {
+            var config = await ApiClient.getPluginConfiguration(pluginId);
+            config.Enabled = enabled.checked;
+            config.DryRun = dryRun.checked;
+            config.MaxDepth = Math.max(1, Math.min(30, Number(depth.value) || 12));
+            await ApiClient.updatePluginConfiguration(pluginId, config);
+            setStatus('Settings saved.', false);
+          } catch (error) {
+            console.error('AutoSubs configuration save failed:', error);
+            setStatus('Could not save AutoSubs settings. See browser console.', true);
+          } finally {
+            save.disabled = false;
+          }
         });
       })();
     </script>

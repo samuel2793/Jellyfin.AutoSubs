@@ -1,0 +1,85 @@
+name: Publish Jellyfin plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jellyfin-autosubs-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Validate plugin tag
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          tag = os.environ['GITHUB_REF_NAME']
+          version = json.loads(Path('meta.json').read_text())['version']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+\.\d+', tag), 'Tag must be vX.Y.Z.W'
+          assert tag == 'v' + version, f'Tag {tag} does not match meta.json version {version}'
+          PY
+
+      - name: Test filesystem logic
+        run: dotnet run --project AutoSubs.SelfTest/AutoSubs.SelfTest.csproj -c Release
+
+      - name: Compile plugin
+        run: dotnet publish Jellyfin.Plugin.AutoSubs/Jellyfin.Plugin.AutoSubs.csproj -c Release -o publish
+
+      - name: Package binary release
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s publish/Jellyfin.Plugin.AutoSubs.dll
+          mkdir -p dist
+          cp meta.json publish/meta.json
+          (
+            cd publish
+            zip -q "../dist/AutoSubs_${GITHUB_REF_NAME#v}.zip" Jellyfin.Plugin.AutoSubs.dll meta.json
+          )
+          unzip -l "dist/AutoSubs_${GITHUB_REF_NAME#v}.zip"
+          md5sum "dist/AutoSubs_${GITHUB_REF_NAME#v}.zip"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/AutoSubs_${GITHUB_REF_NAME#v}.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "AutoSubs ${GITHUB_REF_NAME#v}" \
+            --notes 'Preview build for Jellyfin 12.2.0. Test on a non-production library first. Dry run is on by default.'
+
+      - name: Update public Jellyfin manifest on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          python3 scripts/generate_manifest.py \
+            --zip "dist/AutoSubs_${GITHUB_REF_NAME#v}.zip" \
+            --tag "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY"
+          git add manifest.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' \
+                -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                commit -m "Publish Jellyfin catalog entry for $GITHUB_REF_NAME"
+            git push origin HEAD:main
+          fi

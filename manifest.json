@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "746a7eb3-42b6-46b1-98cb-14f02d5ac22b",
+    "versions": [
+      {
+        "version": "0.1.0.0",
+        "changelog": "Initial preview release: recursive local subtitle discovery, including VobSub pairs.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/samuel2793/Jellyfin.AutoSubs/releases/download/v0.1.0.0/AutoSubs_0.1.0.0.zip",
+        "checksum": "c6a3c65fb310d236ec2d845e49e2d1a9",
+        "timestamp": "2026-11-18T22:45:53Z"
+      }
+    ],
+    "name": "AutoSubs",
+    "description": "Discover arbitrary subtitle names in movie directories and nested folders; link safely next to videos.",
+    "overview": "Automatic local subtitle discovery for Jellyfin movie libraries.",
+    "owner": "samuel2793",
+    "category": "General"
+  }
+]

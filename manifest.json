@@ -3,6 +3,14 @@
     "guid": "746a7eb3-42b6-46b1-98cb-14f02d5ac22b",
     "versions": [
       {
+        "version": "0.1.0.1",
+        "changelog": "Initial preview release: recursive local subtitle discovery, including VobSub pairs.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/samuel2793/Jellyfin.AutoSubs/releases/download/v0.1.0.1/AutoSubs_0.1.0.1.zip",
+        "checksum": "8c352c8619667a3e0106e08f3af94849",
+        "timestamp": "2026-11-18T23:03:00Z"
+      },
+      {
         "version": "0.1.0.0",
         "changelog": "Initial preview release: recursive local subtitle discovery, including VobSub pairs.",
         "targetAbi": "12.2.0.0",
